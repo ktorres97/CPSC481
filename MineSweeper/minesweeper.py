@@ -1,6 +1,10 @@
-#Source code provided by https://jackfolsom.weebly.com/
+''' 
+Hey gang, go down to line 395, thats where my changes take place
+'''
+
 import random
 import pygame
+import time
 pygame.init()
 
 RED = (255,0,0)
@@ -9,7 +13,7 @@ YELLOW = (255,255,0)
 WHITE = (255,255,255)
 GREY = (127,127,127)
 BLACK = (0,0,0)
-GREEN = (50, 205, 50)
+BLUE = (76,76,255)
 
 size = (500,600)
 screen = pygame.display.set_mode(size)
@@ -20,7 +24,7 @@ done = False
 
 clock = pygame.time.Clock()
 
-font = pygame.font.Font("HighlandGothicFLF.ttf",20)
+font = pygame.font.Font(None,20)
 
 mouse_state = 0
 mouse_x = 0
@@ -35,7 +39,7 @@ gameState = -1
 class Button():
     def __init__(self):
         self.textBoxes = {}
-
+    
     #----Clicked In----
     def clickedIn(self,x,y,width,height):
         global mouse_state, mouse_x, mouse_y
@@ -53,7 +57,7 @@ class Button():
         global mouse_state, mouse_x, mouse_y
         if mouse_state == 0 and mouse_x >= x and mouse_x <= (x + width) and mouse_y >= y and mouse_y <= (y + height):
             return True
-
+    
     #----Click Button----
     def clickButton(self,x,y,width,height,normalColor,hoverColor,textFont,text,textColor,stateHolding = False,stateVariable = 0,state = 1):
         if not self.clickedIn(x,y,width,height) and not self.hovering(x,y,width,height):
@@ -75,7 +79,7 @@ def infoBar():
     global gameState
     pygame.draw.rect(screen,GREY,(0,0,500,100))
     pygame.draw.line(screen,BLACK,(0,100),(500,100),4)
-
+    
     if gameState == 0:
         text = font.render("MINES: " + str(game.nummines),True,BLACK)
         text_x = text.get_rect().width
@@ -90,17 +94,13 @@ def infoBar():
         text_x = text.get_rect().width
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
-    elif gameState == 2:    #lose
-        text = font.render("YOU  LOSE",True,BLACK)
+    elif gameState == 2:    #loose
+        text = font.render("YOU  LOOSE",True,BLACK)
         text_x = text.get_rect().width
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
-
-    if gameState == 1:
-        if button.clickButton(325,25,150,50,GREEN,ORANGE,font,"RESET",BLACK):
-            gameState = -1
-            game.reset(0,0,0)
-    elif gameState == 2:
+        
+    if gameState == 1 or gameState == 2:
         if button.clickButton(325,25,150,50,RED,ORANGE,font,"RESET",BLACK):
             gameState = -1
             game.reset(0,0,0)
@@ -118,7 +118,7 @@ def menu():
     screen.blit(text,((250 - (text_x / 2)),(150 - (text_y / 2))))
     if button.clickButton(200,250,100,50,RED,ORANGE,font,"EASY",BLACK):
         game.reset(5,5,5)
-        gameState = 0
+        gameState = 0     
     if button.clickButton(200,310,100,50,RED,ORANGE,font,"MEDIUM",BLACK):
         game.reset(10,10,15)
         gameState = 0
@@ -163,7 +163,7 @@ def custom():
     if button.clickButton(200,390,100,60,RED,ORANGE,font,"START",BLACK):
         game.reset(cColumns,cRows,cMines)
         gameState = 0
-
+    
 
 class Tile():
     def __init__(self,x,y,columns,rows):
@@ -175,7 +175,7 @@ class Tile():
         self.neighbors = 0
         self.visible = False
         self.flag = False
-
+    
     def update(self):
         global gameState
         if gameState == 0:
@@ -189,7 +189,7 @@ class Tile():
                     self.flag = False
             if self.visible == True and self.mine == True:
                 gameState = 2
-
+    
     def show(self):
         if self.flag == True:
             pygame.draw.rect(screen,YELLOW,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
@@ -201,10 +201,10 @@ class Tile():
                     text_x = text.get_rect().width
                     text_y = text.get_rect().height
                     screen.blit(text,((self.x + ((size[0] / self.columns) / 2) - (text_x / 2)),(self.y + (((size[1] - 100) / self.rows) / 2) - (text_y / 2))))
-
+            
             elif self.mine == True:
                 pygame.draw.rect(screen,RED,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
-
+        
         pygame.draw.rect(screen,BLACK,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)),2)
 
 class Game():
@@ -219,13 +219,13 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
-
+        
         #creating board
         for y in range(self.rows):
             self.board.append([])
             for x in range(self.columns):
                 self.board[y].append(Tile(x,y,self.columns,self.rows))
-
+        
         #placing mines
         while self.minenum < self.nummines:
             self.mineloc = [random.randrange(self.columns),random.randrange(self.rows)]
@@ -233,7 +233,7 @@ class Game():
                 self.mines.append(self.mineloc)
                 self.board[self.mineloc[1]][self.mineloc[0]].mine = True
             self.minenum = len(self.mines)
-
+        
         #neighbors
         for y in range(self.rows):
             for x in range(self.columns):
@@ -263,7 +263,7 @@ class Game():
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
-
+    
     def update(self):
         global gameState
         self.numflaged = 0
@@ -302,13 +302,13 @@ class Game():
             for y in range(self.rows):
                 for x in range(self.columns):
                     self.board[y][x].visible = True
-
-
+        
+    
     def render(self):
         for y in range(self.rows):
             for x in range(self.columns):
                 self.board[y][x].show()
-
+    
     def reset(self,columns,rows,mines):
         if columns != 0 and rows != 0 and mines != 0:
             self.columns = columns
@@ -321,13 +321,13 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
-
+        
         #creating board
         for y in range(self.rows):
             self.board.append([])
             for x in range(self.columns):
                 self.board[y].append(Tile(x,y,self.columns,self.rows))
-
+        
         #placing mines
         while self.minenum < self.nummines:
             self.mineloc = [random.randrange(self.columns),random.randrange(self.rows)]
@@ -335,7 +335,7 @@ class Game():
                 self.mines.append(self.mineloc)
                 self.board[self.mineloc[1]][self.mineloc[0]].mine = True
             self.minenum = len(self.mines)
-
+        
         #neighbors
         for y in range(self.rows):
             for x in range(self.columns):
@@ -365,8 +365,11 @@ class Game():
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
-
+        
 game = Game(5,5,5)
+
+#def mineAi(game):
+
 
 while not done:
     for event in pygame.event.get():
@@ -377,24 +380,75 @@ while not done:
             pygame.mouse.set_pos(mouse_x,mouse_y + 1)
         else:
             mouse_state = 0
-
+    
     mouse_x = pygame.mouse.get_pos()[0]
     mouse_y = pygame.mouse.get_pos()[1]
-
+    
     screen.fill(WHITE)
-
+    
     if gameState == -1:
         menu()
-
+    
     elif gameState == -2:
         custom()
-
+    
     elif gameState >= 0 and gameState <= 2:
+        '''
+        So originally all this part of the code was just this
         infoBar()
-
         game.update()
         game.render()
 
+        but i changed it to a simple demonstation of how to navagate around the board
+        '''
+
+        #the game variable is the just the game(obviously)
+        #game.rows/game.columns returns the total number of rows and columns of the game
+        #this works on easy, medium, hard, and custom so no adjustments are needed
+        rowCount = game.rows
+        colCount = game.columns
+        '''
+        the next three lines just update the state of the game,
+        pretty much whenever you make a change to the game you want to 
+        execute these 3 functions
+        '''
+        infoBar()
+        game.update()
+        game.render()
+
+        #pygame.display.flip() is needed for the game to visually change for the user
+        pygame.display.flip()
+        '''game.board is the actual grid board, so game.board[0][0] is the very 
+        upperleft most position on the board
+        the next 2 lines the variables xval and yval are the coordinates for the center
+        position on the board, is if the board is 5x5 im getting position 3,3 '''
+        xval = game.board[rowCount//2][colCount//2].x
+        yval = game.board[rowCount//2][colCount//2].y
+        '''here im creating a visual of where the AI is currently, if you run the program
+        you'll see a blue rectangle on the board indicating where the AI is'''
+        pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.display.flip()
+        #wait 2 seconds
+        time.sleep(2)
+        '''game.board[x][y].visable = True reveals that point on the board,
+            This is equivalent to the mouse left-clicking a position on the board
+        '''
+        game.board[rowCount//2][colCount//2].visible = True
+        infoBar()
+        game.update()
+        game.render()
+        #Moving 1 position down
+        xval = game.board[(rowCount//2)+1][colCount//2].x
+        yval = game.board[(rowCount//2)+1][colCount//2].y
+        pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.display.flip()
+        time.sleep(2)
+        
+       
+        infoBar()
+        game.update()
+        game.render()
+    
     pygame.display.flip()
 
     clock.tick(60)
