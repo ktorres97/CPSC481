@@ -365,11 +365,47 @@ class Game():
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
+    #This function returns the coordinates of the unrevealed neighbors
+    #of a given coordinate on the grid
+    def getNumOfHiddenNeigbors(self, x, y):
+        result = []
+        if(x > 0):
+            if self.board[x-1][y].visible != True:
+                coords = tuple([x-1,y])
+                result.append(coords)
+        if(y > 0):
+            if(self.board[x][y-1].visible != True):
+                coords = tuple([x,y-1])
+                result.append(coords)
+        if(x < self.rows):
+            if(self.board[x+1][y].visible != True):
+                coords = tuple([x+1,y])
+                result.append(coords)
+        if(y < self.columns):
+            if(self.board[x][y+1].visible != True):
+                coords = tuple([x,y+1])
+                result.append(coords)
+        if(x < self.rows and y < self.columns):
+            if(self.board[x+1][y+1].visible != True):
+                coords = tuple([x+1,y+1])
+                result.append(coords)
+        if(x > 0 and y > 0):
+            if(self.board[x-1][y-1].visible != True):
+                coords = tuple([x-1,y-1])
+                result.append(coords)
+        if(x < self.rows and y > 0):
+            if(self.board[x+1][y-1].visible != True):
+                coords = tuple([x+1,y-1])
+                result.append(coords)
+        if(x > 0 and y < self.columns):
+            if(self.board[x-1][y+1].visible != True):
+                coords = tuple([x-1,y+1])
+                result.append(coords)
+        return result
         
 game = Game(5,5,5)
 
 #def mineAi(game):
-
 
 while not done:
     for event in pygame.event.get():
@@ -437,6 +473,9 @@ while not done:
         infoBar()
         game.update()
         game.render()
+        print(game.getNumOfHiddenNeigbors(rowCount//2,colCount//2))
+        print("moving one down")
+        print(game.getNumOfHiddenNeigbors((rowCount//2)+1,colCount//2))
         #Moving 1 position down
         xval = game.board[(rowCount//2)+1][colCount//2].x
         yval = game.board[(rowCount//2)+1][colCount//2].y
