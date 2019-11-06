@@ -14,6 +14,7 @@ WHITE = (255,255,255)
 GREY = (127,127,127)
 BLACK = (0,0,0)
 BLUE = (76,76,255)
+GREEN = (0,255,0)
 
 size = (500,600)
 screen = pygame.display.set_mode(size)
@@ -163,7 +164,8 @@ def custom():
         if cMines > 0:
             cMines -= 1
     if button.clickButton(200,390,100,60,RED,ORANGE,font,"START",BLACK):
-        game.reset(cColumns,cRows,cMines)
+        #game.reset(cColumns,cRows,cMines)
+        game.reset(10,10,5)
         gameState = 0
     
 
@@ -209,6 +211,7 @@ class Tile():
         
         pygame.draw.rect(screen,BLACK,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)),2)
     
+    #Fixes the render issue for traversing though the revealed points
     def showAI(self):
         if self.flag == True:
             pygame.draw.rect(screen,YELLOW,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
@@ -327,7 +330,7 @@ class Game():
         for y in range(self.rows):
             for x in range(self.columns):
                 self.board[y][x].show()
-    
+    #Fixes the render issue for traversing though the revealed points
     def renderAI(self, x, y):
         self.board[y][x].showAI()
     
@@ -387,6 +390,7 @@ class Game():
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
+    
     #This function returns the coordinates of the unrevealed neighbors
     #of a given coordinate on the grid
     def getNumOfHiddenNeigbors(self, x, y):
@@ -425,6 +429,8 @@ class Game():
                 result.append(coords)
         return result
     
+    #this function returns an array of flags that have been placed
+    #I dont think I actually used this function
     def getArrayOfFlags(self, coords):
         flags = []
         for coord in coords:
@@ -433,7 +439,8 @@ class Game():
             if self.board[x][y].flag == True:
                 flags.append(coord)
         return flags
-
+    
+    #returns an array of all of the revealed points on the grid
     def getAllRevealed(self):
         revealed = []
         x = 0
@@ -448,6 +455,7 @@ class Game():
             y = 0
         return revealed
 
+    #flags the neighbors
     def flagNeighbors(self, coords):
         for coord in coords:
             x = coord[0]
@@ -456,16 +464,25 @@ class Game():
             infoBar()
             self.update()
 
-    
+    #This function reveals the neighbors that are 100% forsure not mines
     def revealNeigborsWithouFlags(self, neighbors):
         for neigb in neighbors:
             x = neigb[0]
             y = neigb[1]
+            xval = game.board[x][y].x
+            yval = game.board[x][y].y
             if self.board[x][y].flag == False:
+                pygame.draw.rect(screen,GREEN,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+                pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+                infoBar()
+                game.update()
+                game.renderAI(x,y)
+                pygame.display.flip()
+                time.sleep(.2)
                 self.board[x][y].visible = True
                 infoBar()
                 self.update()
-                self.render()
+                self.renderAI(x,y)
                 pygame.display.flip()
                 time.sleep(.5)
 
@@ -487,34 +504,42 @@ def traverseThoughGrid(game):
             pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
             if(x == rows//2  and y == cols//2):
                 game.board[x][y].visible = True
-            infoBar()
-            game.update()
-            game.render()
-            pygame.display.flip()
-            y += 1
-            time.sleep(.05)
             screen.fill(WHITE)
             infoBar()
             game.update()
             game.render()
             pygame.display.flip()
+            y += 1
 
         x+=1
         y = 0
     
-
+#traverses through the revealed points on the grid
 def traverseThoughRevealed(game, coords):
     for coord in coords:
         x = coord[0]
         y = coord[1]
         xval = game.board[x][y].x
         yval = game.board[x][y].y
+
+        #gets neighbors
         neighbs = game.getNumOfHiddenNeigbors(x,y)
+        #draws blue rectangle with black border indicating where the AI is looking 
         pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+        if(game.board[x][y].neighbors > 0):
+            #if the point on the graph has neighbors write the number over the Blue rectangle
+            text = font.render(str(game.board[x][y].neighbors),True,BLACK)
+            text_x = text.get_rect().width
+            text_y = text.get_rect().height
+            screen.blit(text,((game.board[x][y].x + ((size[0] / game.columns) / 2) - (text_x / 2)),(game.board[x][y].y + (((size[1] - 100) / game.rows) / 2) - (text_y / 2))))
+        #these next 4 lines update everything
         infoBar()
         game.update()
         game.renderAI(x,y)
         pygame.display.flip()
+
+        #if there are neighbors that havent been revealed the AI lookss at the,
         if len(neighbs) > 0:
             drawNeighbors(game,neighbs)
             infoBar()
@@ -522,10 +547,13 @@ def traverseThoughRevealed(game, coords):
             game.renderAI(x,y)
             pygame.display.flip()
             
+            #when we know forsure to flag neighbors
             if(len(neighbs) == game.board[x][y].neighbors):
                 game.flagNeighbors(neighbs)
 
-            flags = game.getArrayOfFlags(neighbs)   
+            #get array of flags
+            flags = game.getArrayOfFlags(neighbs)
+            #if there are a sufficient number of flags reveal all other points   
             if(len(flags) == game.board[x][y].neighbors):
                game.revealNeigborsWithouFlags(neighbs)
 
@@ -533,8 +561,8 @@ def traverseThoughRevealed(game, coords):
         time.sleep(.05)
         game.render()
         pygame.display.flip()
-        
-        
+
+#draws out the orange outline indicating the neighbors that the AI is looking at      
 def drawNeighbors(game, coords):
     for coord in coords:
         x = coord[0]
@@ -569,6 +597,7 @@ while not done:
     
     elif gameState >= 0 and gameState <= 2:
         
+        #startmode basically looks for an initial point to reveal, right now i just do the most middle point
         if(startMode):
             traverseThoughGrid(game)
             startMode = False
@@ -577,6 +606,7 @@ while not done:
             game.update()
             game.render()
             pygame.display.flip()
+            #get all revealed points and traverse through them
             rev = game.getAllRevealed()
             traverseThoughRevealed(game,rev)
             
