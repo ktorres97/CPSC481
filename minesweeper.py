@@ -98,7 +98,7 @@ def infoBar():
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
     elif gameState == 2:    #loose
-        text = font.render("YOU  LOOSE",True,BLACK)
+        text = font.render("YOU  LOSE",True,BLACK)
         text_x = text.get_rect().width
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
@@ -193,6 +193,7 @@ class Tile():
                     self.flag = False
             if self.visible == True and self.mine == True:
                 gameState = 2
+                
     
     def show(self):
         if self.flag == True:
@@ -216,14 +217,7 @@ class Tile():
         if self.flag == True:
             pygame.draw.rect(screen,YELLOW,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
         if self.visible == True:
-            if self.mine == False:
-                if self.neighbors > 0:
-                    text = font.render(str(self.neighbors),True,BLACK)
-                    text_x = text.get_rect().width
-                    text_y = text.get_rect().height
-                    screen.blit(text,((self.x + ((size[0] / self.columns) / 2) - (text_x / 2)),(self.y + (((size[1] - 100) / self.rows) / 2) - (text_y / 2))))
-            
-            elif self.mine == True:
+            if self.mine == True:
                 pygame.draw.rect(screen,RED,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
         
         pygame.draw.rect(screen,BLACK,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)),2)
@@ -439,7 +433,26 @@ class Game():
             if self.board[x][y].flag == True:
                 flags.append(coord)
         return flags
+
+    def getNumOfFlags(self, neighbs):
+
+        count = 0
+        for neighb in neighbs:
+            x = neighb[0]
+            y = neighb[1]
+            if self.board[x][y].flag == True:
+                count += 1
+        return count
     
+    #This function checks to see if a point on the grid has been satisfied
+    def isSatisfied(self, x, y):
+             
+            neighbs = self.getNumOfHiddenNeigbors(x,y)
+            flagCount = self.getNumOfFlags(neighbs)
+            if(len(neighbs) == flagCount):
+                return True
+            return False
+
     #returns an array of all of the revealed points on the grid
     def getAllRevealed(self):
         revealed = []
@@ -447,13 +460,28 @@ class Game():
         y = 0
         while x < self.rows:
             while y < self.columns:
-                if self.board[x][y].visible == True:
+                if self.board[x][y].visible == True and self.isSatisfied(x,y) == False:
                     coord = tuple([x,y])
                     revealed.append(coord)
                 y += 1
             x += 1
             y = 0
         return revealed
+
+    #returns an array of all unrevealed points on the graph
+    def getAllUnrevealed(self):
+        unrevealed = []
+        x = 0
+        y = 0
+        while x < self.rows:
+            while y < self.columns:
+                if self.board[x][y].visible == False:
+                    coord = tuple([x,y])
+                    unrevealed.append(coord)
+                y += 1
+            x += 1
+            y = 0
+        return unrevealed
 
     #flags the neighbors
     def flagNeighbors(self, coords):
@@ -471,6 +499,7 @@ class Game():
             y = neigb[1]
             xval = game.board[x][y].x
             yval = game.board[x][y].y
+            time.sleep(.2)
             if self.board[x][y].flag == False:
                 pygame.draw.rect(screen,GREEN,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
                 pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
@@ -487,32 +516,42 @@ class Game():
                 time.sleep(.5)
 
 
-
 game = Game(5,5,5)
 #def mineAi(game):
 
-def traverseThoughGrid(game):
-    cols = game.columns
-    rows = game.rows
-    x = 0
-    y = 0
-    while x < rows:
-        while y < cols:
-            xval = game.board[x][y].x
-            yval = game.board[x][y].y
-            
-            pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
-            if(x == rows//2  and y == cols//2):
-                game.board[x][y].visible = True
-            screen.fill(WHITE)
-            infoBar()
-            game.update()
-            game.render()
-            pygame.display.flip()
-            y += 1
+#This is the function you guys need to impliment. At the moment all it does is pick a random unrevealed point on the graph 
+#and if that point is not revealed then it will reveal it. You guys need to make it calculate the odds of 
+#each unrevealed point on the graph and pick the one that is LEAST likely to be a mine.
+def guessMode(game):
+    unrevealed = game.getAllUnrevealed()
+    randNum = random.randint(0, len(unrevealed) - 1)
+    x = unrevealed[randNum][0]
+    y = unrevealed[randNum][1]
 
-        x+=1
-        y = 0
+    xval = game.board[x][y].x
+    yval = game.board[x][y].y
+    
+    pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+    pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+    infoBar()
+    game.update()
+    game.renderAI(x,y)
+    pygame.display.flip()
+    time.sleep(1)
+    game.render()
+    pygame.display.flip()
+    if(game.board[x][y].flag == False):
+        game.board[x][y].visible = True
+        infoBar()
+        game.update()
+        game.render()
+        pygame.display.flip()
+        time.sleep(.5)
+    else:
+        
+        guessMode(game)
+    
+   
     
 #traverses through the revealed points on the grid
 def traverseThoughRevealed(game, coords):
@@ -571,7 +610,29 @@ def drawNeighbors(game, coords):
         yval = game.board[x][y].y
         pygame.draw.rect(screen, ORANGE, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
 
+def shouldEnterGuessMode(game, revOne, revTwo):
+
+    if(len(revOne) != len(revTwo)):
+        return False
+
+    n = len(revTwo)
+    for i in range(0,n-1):
         
+        xOne = revOne[i][0]
+        yOne = revOne[i][1]
+        xTwo = revTwo[i][0]
+        yTwo = revTwo[i][1]
+        neighbsOne = game.getNumOfHiddenNeigbors(xOne,yOne)
+        neighbsTwo = game.getNumOfHiddenNeigbors(xTwo,yTwo)
+
+        if(len(neighbsOne) != len(neighbsTwo)):
+            return False
+  
+        if game.getNumOfFlags(neighbsOne) != game.getNumOfFlags(neighbsTwo):
+            return False
+
+    return True
+    
 
 while not done:
 
@@ -597,18 +658,41 @@ while not done:
     
     elif gameState >= 0 and gameState <= 2:
         
-        #startmode basically looks for an initial point to reveal, right now i just do the most middle point
-        if(startMode):
-            traverseThoughGrid(game)
-            startMode = False
-        else:
+        infoBar()
+        game.update()
+        game.render()
+        pygame.display.flip()
+        if(gameState == 1 or gameState == 2):
+            #startmode basically looks for an initial point to reveal, right now i just do the most middle point
             infoBar()
             game.update()
             game.render()
             pygame.display.flip()
-            #get all revealed points and traverse through them
-            rev = game.getAllRevealed()
-            traverseThoughRevealed(game,rev)
+
+        else:
+            if(startMode):
+                guessMode(game)
+                startMode = False
+                infoBar()
+                game.update()
+                game.render()
+                pygame.display.flip()
+                if(gameState != 2 and gameState != 1):
+                    newRev = game.getAllRevealed()
+                    traverseThoughRevealed(game,newRev)
+            else:
+                infoBar()
+                game.update()
+                game.render()
+                pygame.display.flip()
+                #get all revealed points and traverse through them
+                oldRev = newRev
+                newRev = game.getAllRevealed()
+
+                if(shouldEnterGuessMode(game,oldRev,newRev)):
+                    guessMode(game)
+                else:
+                    traverseThoughRevealed(game,newRev)
             
         
     
