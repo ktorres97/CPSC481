@@ -517,7 +517,47 @@ class Game():
                 pygame.display.flip()
                 time.sleep(.5)
 
-    #Assign probability of being a bomb for all hidden spaces
+    #Identify tiles around the targeted tile
+    def checkSurrounding(self, x, y):
+        surrounding = []
+        if(x>0 and self.board[x-1][y].visible!=True and self.board[x-1][y].flagged!=True):
+            surrounding.add(self.board[x-1][y])
+        if(x<self.rows-1 and self.board[x+1][y].visible!=True and self.board[x+1][y].flagged!=True):
+            surrounding.add(self.board[x+1][y])
+        if(x>0 and y>0 and self.board[x-1][y-1].visible!=True and self.board[x-1][y-1].flagged!=True):
+            surrounding.add(self.board[x-1][y-1])
+        if(x<self.rows-1 and y>0 and self.board[x+1][y-1].visible!=True and self.board[x+1][y-1].flagged!=True):
+            surrounding.add(self.board[x+1][y-1])
+        if(x>0 and y<self.columns-1 and self.board[x-1][y+1].visible!=True and self.board[x-1][y+1].flagged!=True):
+            surrounding.add(self.board[x-1][y+1])
+        if(x<self.rows-1 and y<self.columns-1 and self.board[x+1][y+1].visible!=True and self.board[x+1][y+1].flagged!=True):
+            surrounding.add(self.board[x+1][y+1])
+        if(y>0 and self.board[x][y-1].visible!=True and self.board[x][y-1].flagged!=True):
+            surrounding.add(self.board[x][y-1])
+        if(y<self.columns-1 and self.board[x][y+1].visible!=True and self.board[x][y+1].flagged!=True):
+            surrounding.add(self.board[x][y+1])
+        return surrounding
+
+    #Add new group of tiles to groups
+    def join(self, newGroup, x, y):
+        newGroup.add(self.board[x][y])
+        for i in range(self.rows):
+            for j in range(self.colums):
+                if self.board[i][j].visible and self.board[i][j].flagged!=True and self.board[i][j] not in newGroup:
+                    for k in range(8-self.board[i][j].neighbors):
+                        surroundingGiven = checkSurrounding(x,y)
+                        surroundingNew = checkSurrounding(i,j)
+                        if surroundingNew[k] in surroundingGiven:
+                            join(newGroup, i,j)
+
+    #Solve the group of tiles
+    def solveGroup(self, group):
+        hiding = []
+        for i in range(len(group)):
+            pass
+
+
+    #Assign probability of being a mine for all hidden spaces
     def calcProbabilities(self):
         unknownAmount = 0
         for x in range(self.rows):
@@ -526,25 +566,39 @@ class Game():
                 if self.board[x][y].visible is True:
                     tileUnknown = True
                     self.board[x][y].unknown = True
-                    if x>0 and !self.board[x-1][y].hidden: tileUnknown=False
-                    if x<self.rows-1 and !self.board[x+1][y].hidden: tileUnknown=False
-                    if x>0 and y>0 and !self.board[x-1][y-1].hidden: tileUnknown=False
-                    if x<self.rows-1 and j>0 and !self.board[x+1][y-1].hidden: tileUnknown=False
-                    if x>0 and j<self.columns-1 and !self.board[x-1][y+1].hidden: tileUnknown=False
-                    if x<self.rows-1 and j<self.columns-1 and !self.board[x+1][y+1].hidden: tileUnknown=False
-                    if j<self.colums-1 and !self.board[x][y+1].hidden: tileUnknown=False
-                    if j>0 and !self.board[x][j-1].hidden: tileUnknown=False
+                    if x>0 and self.board[x-1][y].visible: tileUnknown=False
+                    if x<self.rows-1 and self.board[x+1][y].visible: tileUnknown=False
+                    if x>0 and y>0 and self.board[x-1][y-1].visible: tileUnknown=False
+                    if x<self.rows-1 and j>0 and self.board[x+1][y-1].visible: tileUnknown=False
+                    if x>0 and j<self.columns-1 and self.board[x-1][y+1].visible: tileUnknown=False
+                    if x<self.rows-1 and j<self.columns-1 and self.board[x+1][y+1].visible: tileUnknown=False
+                    if j<self.colums-1 and self.board[x][y+1].visible: tileUnknown=False
+                    if j>0 and self.board[x][j-1].visible: tileUnknown=False
                     if tileUnknown is True:
                         self.board[x][y].unknown = False
                         unknownAmount+=1
 
         #Group areas together so we can identify relationships
+        groups = []
+        for x in range(self.rows):
+            for y in range(self.columns):
+                if self.board[x][y].visible and self.board[x][y].flagged!=True and self.board[x][y].neighbors!=8:
+                    owned = False
+                    for z in range(group):
+                        if self.board[x][y] in group[z]:
+                            owned = True
+                            break
+                    if owned!=True:
+                        newGroup = []
+                        join(newGroup, x, y)
+                        group.add(newGroup)
+
 
         #See possible positions of mines
 
         #Combine all sections' solutions
 
-        #Find probability of each cell being a bomb
+        #Find probability of each cell being a mine
 
 
 
@@ -569,7 +623,7 @@ game = Game(5,5,5)
 #and if that point is not revealed then it will reveal it. You guys need to make it calculate the odds of
 #each unrevealed point on the graph and pick the one that is LEAST likely to be a mine.
 def guessMode(game):
-    if game.remainingMines > 50:
+    if game.remainingMines() > 50:
         #pick random
         pass
     else:
@@ -582,12 +636,13 @@ def guessMode(game):
         y_coor = 0
         for x in range(rows):
             for y in range(columns):
-                if (proboard[i][j].flagged is False and proboard[i][j] is true and
-                    proboard[i][j].probability < min)
-                    min = proboard[i][j].probability
+                if (proboard[x][y].flagged is False and proboard[x][y] is True and
+                    proboard[x][y].probability < min):
+                    min = proboard[x][y].probability
                     x_coor = x
                     y_coor = y
         #choose tile at xy
+        self.board[x][y].visible = True
 
 
 
