@@ -180,6 +180,7 @@ class Tile():
         self.visible = False
         self.flag = False
         self.unknown = True
+        self.probability = None
 
     def update(self):
         global gameState
@@ -236,7 +237,6 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
-        self.proboard = []
 
         #creating board
         for y in range(self.rows):
@@ -591,20 +591,41 @@ class Game():
                     if owned!=True:
                         newGroup = []
                         join(newGroup, x, y)
-                        group.add(newGroup)
+                        group.append(newGroup)
 
 
         #See possible positions of mines
+        selections = [0] * len(groups)
+        solutionGroups = []
+        for i in range(len(groups)):
+            solutionGroups.append(solveGroup(groups[i]))
 
-        #Combine all sections' solutions
+        possibleArrange = []
+        finish = False
+
+        while(finish is False):
+            temp = []
+            for x in range(len(groups)):
+                for j in range(selections[i]):
+                    temp.add(selections[j])
+            if len(temp) <= game.remainingMines():
+                possibleArrange.append(temp)
+
+            for i in range(len(groups)-1,-1):
+                selections[i] += 1
+                if selections[i] >= len(solutionGroups[i]):
+                    if i is 0:
+                        finished = True
+                        break
+                    selections = 0
+                else: break
 
         #Find probability of each cell being a mine
+        for x in range(self.rows):
+            for y in range(self.columns):
+                self.board[x][y].probability = 0
 
 
-
-    #Return probabily board
-    def getProboard(self):
-        return self.proboard
 
     def getRows(self):
         return self.rows
@@ -628,7 +649,6 @@ def guessMode(game):
         pass
     else:
         game.calcProbabilities()
-        proboard = game.getProboard()
         rows = game.getRows()
         columns = game.getColumns()
         min = 1
@@ -636,9 +656,9 @@ def guessMode(game):
         y_coor = 0
         for x in range(rows):
             for y in range(columns):
-                if (proboard[x][y].flagged is False and proboard[x][y] is True and
-                    proboard[x][y].probability < min):
-                    min = proboard[x][y].probability
+                if (self.board[x][y].flagged is False and self.board[x][y] is True and
+                    self.board[x][y].probability < min):
+                    min = self.board[x][y].probability
                     x_coor = x
                     y_coor = y
         #choose tile at xy
