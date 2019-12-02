@@ -1,10 +1,8 @@
-'''
-Hey gang, go down to line 395, thats where my changes take place
-'''
 
 import random
 import pygame
 import time
+from numpy import shape
 pygame.init()
 
 RED = (255,0,0)
@@ -237,6 +235,7 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
+        self.firstPick = True
 
         #creating board
         for y in range(self.rows):
@@ -520,41 +519,168 @@ class Game():
     #Identify tiles around the targeted tile
     def checkSurrounding(self, x, y):
         surrounding = []
-        if(x>0 and self.board[x-1][y].visible!=True and self.board[x-1][y].flagged!=True):
-            surrounding.add(self.board[x-1][y])
-        if(x<self.rows-1 and self.board[x+1][y].visible!=True and self.board[x+1][y].flagged!=True):
-            surrounding.add(self.board[x+1][y])
-        if(x>0 and y>0 and self.board[x-1][y-1].visible!=True and self.board[x-1][y-1].flagged!=True):
-            surrounding.add(self.board[x-1][y-1])
-        if(x<self.rows-1 and y>0 and self.board[x+1][y-1].visible!=True and self.board[x+1][y-1].flagged!=True):
-            surrounding.add(self.board[x+1][y-1])
-        if(x>0 and y<self.columns-1 and self.board[x-1][y+1].visible!=True and self.board[x-1][y+1].flagged!=True):
-            surrounding.add(self.board[x-1][y+1])
-        if(x<self.rows-1 and y<self.columns-1 and self.board[x+1][y+1].visible!=True and self.board[x+1][y+1].flagged!=True):
-            surrounding.add(self.board[x+1][y+1])
-        if(y>0 and self.board[x][y-1].visible!=True and self.board[x][y-1].flagged!=True):
-            surrounding.add(self.board[x][y-1])
-        if(y<self.columns-1 and self.board[x][y+1].visible!=True and self.board[x][y+1].flagged!=True):
-            surrounding.add(self.board[x][y+1])
+        if(x>0 and self.board[x-1][y].visible!=True and self.board[x-1][y].flag!=True):
+            surrounding.append(self.board[x-1][y])
+        if(x<self.rows-1 and self.board[x+1][y].visible!=True and self.board[x+1][y].flag!=True):
+            surrounding.append(self.board[x+1][y])
+        if(x>0 and y>0 and self.board[x-1][y-1].visible!=True and self.board[x-1][y-1].flag!=True):
+            surrounding.append(self.board[x-1][y-1])
+        if(x<self.rows-1 and y>0 and self.board[x+1][y-1].visible!=True and self.board[x+1][y-1].flag!=True):
+            surrounding.append(self.board[x+1][y-1])
+        if(x>0 and y<self.columns-1 and self.board[x-1][y+1].visible!=True and self.board[x-1][y+1].flag!=True):
+            surrounding.append(self.board[x-1][y+1])
+        if(x<self.rows-1 and y<self.columns-1 and self.board[x+1][y+1].visible!=True and self.board[x+1][y+1].flag!=True):
+            surrounding.append(self.board[x+1][y+1])
+        if(y>0 and self.board[x][y-1].visible!=True and self.board[x][y-1].flag!=True):
+            surrounding.append(self.board[x][y-1])
+        if(y<self.columns-1 and self.board[x][y+1].visible!=True and self.board[x][y+1].flag!=True):
+            surrounding.append(self.board[x][y+1])
+        return surrounding
+
+    #surrounding group
+    def checkGroup(self, group, x, y):
+        surrounding = []
+        rows = 0
+        columns = 0
+        sizes = shape(group)
+        if len(sizes) == 2:
+            rows = sizes[0]
+            columns = sizes[1]
+        if(x>0 and group[x-1][y].visible!=True and group[x-1][y].flag!=True):
+            surrounding.append(group[x-1][y])
+        if(x<rows-1 and group[x+1][y].visible!=True and group[x+1][y].flag!=True):
+            surrounding.append(group[x+1][y])
+        if(x>0 and y>0 and group[x-1][y-1].visible!=True and group[x-1][y-1].flag!=True):
+            surrounding.append(group[x-1][y-1])
+        if(x<rows-1 and y>0 and group[x+1][y-1].visible!=True and group[x+1][y-1].flag!=True):
+            surrounding.append(group[x+1][y-1])
+        if(x>0 and y<columns-1 and group[x-1][y+1].visible!=True and group[x-1][y+1].flag!=True):
+            surrounding.append(group[x-1][y+1])
+        if(x<rows-1 and y<columns-1 and group[x+1][y+1].visible!=True and group[x+1][y+1].flag!=True):
+            surrounding.append(group[x+1][y+1])
+        if(y>0 and group[x][y-1].visible!=True and group[x][y-1].flag!=True):
+            surrounding.append(group[x][y-1])
+        if(y<columns-1 and group[x][y+1].visible!=True and group[x][y+1].flag!=True):
+            surrounding.append(group[x][y+1])
+        return surrounding
+
+    #surrounding group
+    def checkFlag(self, group, x, y):
+        surrounding = []
+        rows = 0
+        columns = 0
+        sizes = shape(group)
+        if len(sizes) == 2:
+            rows = sizes[0]
+            columns = sizes[1]
+        if(x>0 and group[x-1][y].flag==True):
+            surrounding.append(group[x-1][y])
+        if(x<rows-1 and group[x+1][y].flag==True):
+            surrounding.append(group[x+1][y])
+        if(x>0 and y>0 and group[x-1][y-1].flag==True):
+            surrounding.append(group[x-1][y-1])
+        if(x<rows-1 and y>0 and group[x+1][y-1].flag==True):
+            surrounding.append(group[x+1][y-1])
+        if(x>0 and y<columns-1 and group[x-1][y+1].flag==True):
+            surrounding.append(group[x-1][y+1])
+        if(x<rows-1 and y<columns-1 and group[x+1][y+1].flag==True):
+            surrounding.append(group[x+1][y+1])
+        if(y>0 and group[x][y-1].flag==True):
+            surrounding.append(group[x][y-1])
+        if(y<columns-1 and group[x][y+1].flag==True):
+            surrounding.append(group[x][y+1])
         return surrounding
 
     #Add new group of tiles to groups
     def join(self, newGroup, x, y):
-        newGroup.add(self.board[x][y])
+        newGroup.append(self.board[x][y])
         for i in range(self.rows):
-            for j in range(self.colums):
-                if self.board[i][j].visible and self.board[i][j].flagged!=True and self.board[i][j] not in newGroup:
+            for j in range(self.columns):
+                if self.board[i][j].visible and self.board[i][j].flag!=True and self.board[i][j] not in newGroup:
                     for k in range(8-self.board[i][j].neighbors):
-                        surroundingGiven = checkSurrounding(x,y)
-                        surroundingNew = checkSurrounding(i,j)
-                        if surroundingNew[k] in surroundingGiven:
-                            join(newGroup, i,j)
+                        surroundingGiven = self.checkSurrounding(x,y)
+                        surroundingNew = self.checkSurrounding(i,j)
+                        if len(surroundingNew) < k:
+                            if surroundingNew[k] in surroundingGiven:
+                                self.join(newGroup, i, j)
+
+    #Check if group is valid solution
+    def solution(self, check, group):
+        for x in range(len(group)):
+            count = 0
+            for y in range(len(self.checkGroup(group,x,y))):
+                hidden = self.checkGroup(group,x,y)
+                if hidden[j] in check:
+                    count += 1
+            if count != group[i][j].neighbors - len(self.checkFlag(group,x,y)): return False
+        return True
+
+    #Check if group is rejected
+    def reject(self, check, checkInt, hide, group):
+        for x in range(len(group)):
+            count = 0
+            missed = 0
+            for y in range(len(self.checkGroup(group,x,y))):
+                hidden = self.checkGroup(group,x,y)
+                if hidden[y] in check:
+                    count += 1
+                else:
+                    if hide.index(hidden[y]) < checkInt[-1]:
+                        missed += 1
+            if count > group[i].neighbors - len(self.checkFlag(group,x,y)): return True
+            if group[i].neighbors - len(self.checkFlag(group,x,y)) > len(hide) - missed:
+                return True
+        return False
 
     #Solve the group of tiles
     def solveGroup(self, group):
-        hiding = []
+        hidden = []
         for i in range(len(group)):
-            pass
+            j = 0
+            for j in range(len(self.checkGroup(group,i,j))):
+                check = self.checkGroup(group[i],i,j)
+                if check[j] not in hidden:
+                    hidden.append(check[j])
+
+        solutions = []
+        test = []
+        check = []
+        checkInt = []
+        temp = []
+
+        for i in range(len(hidden)):
+            checkInt = []
+            checkInt.append(i)
+            test.add(checkInt)
+
+        while(True):
+            if len(test)!=0:
+                checkInt = test.pop()
+            else: break
+
+            check = []
+            for i in range(len(checkInt)):
+                check.append(hidden[checkInt[i]])
+
+            if self.verify(check, group) is True:
+                solutions.append(check)
+            else:
+                if self.reject(check, checkInt, hidden, group) is False:
+                    for i in range(len(checkInt[len(checkInt)-1]+1), len(hidden)):
+                        temp = check
+                        temp.append(i)
+                        test.append(temp)
+            return solutions
+
+    #determine possible combinations
+    def combo(amount, remain):
+        if remain == 0:
+            return 1
+        result = 1
+        for i in range(r):
+            result *=(amount-i)
+        result /= factorial(remain)
+        return result
 
 
     #Assign probability of being a mine for all hidden spaces
@@ -569,11 +695,11 @@ class Game():
                     if x>0 and self.board[x-1][y].visible: tileUnknown=False
                     if x<self.rows-1 and self.board[x+1][y].visible: tileUnknown=False
                     if x>0 and y>0 and self.board[x-1][y-1].visible: tileUnknown=False
-                    if x<self.rows-1 and j>0 and self.board[x+1][y-1].visible: tileUnknown=False
-                    if x>0 and j<self.columns-1 and self.board[x-1][y+1].visible: tileUnknown=False
-                    if x<self.rows-1 and j<self.columns-1 and self.board[x+1][y+1].visible: tileUnknown=False
-                    if j<self.colums-1 and self.board[x][y+1].visible: tileUnknown=False
-                    if j>0 and self.board[x][j-1].visible: tileUnknown=False
+                    if x<self.rows-1 and y>0 and self.board[x+1][y-1].visible: tileUnknown=False
+                    if x>0 and y<self.columns-1 and self.board[x-1][y+1].visible: tileUnknown=False
+                    if x<self.rows-1 and y<self.columns-1 and self.board[x+1][y+1].visible: tileUnknown=False
+                    if y<self.columns-1 and self.board[x][y+1].visible: tileUnknown=False
+                    if y>0 and self.board[x][y-1].visible: tileUnknown=False
                     if tileUnknown is True:
                         self.board[x][y].unknown = False
                         unknownAmount+=1
@@ -582,23 +708,23 @@ class Game():
         groups = []
         for x in range(self.rows):
             for y in range(self.columns):
-                if self.board[x][y].visible and self.board[x][y].flagged!=True and self.board[x][y].neighbors!=8:
+                if self.board[x][y].visible and self.board[x][y].flag!=True and self.board[x][y].neighbors!=8:
                     owned = False
-                    for z in range(group):
-                        if self.board[x][y] in group[z]:
+                    for z in range(len(groups)):
+                        if self.board[x][y] in groups[z]:
                             owned = True
                             break
                     if owned!=True:
                         newGroup = []
-                        join(newGroup, x, y)
-                        group.append(newGroup)
+                        self.join(newGroup, x, y)
+                        groups.append(newGroup)
 
 
         #See possible positions of mines
         selections = [0] * len(groups)
         solutionGroups = []
         for i in range(len(groups)):
-            solutionGroups.append(solveGroup(groups[i]))
+            solutionGroups.append(self.solveGroup(groups[i]))
 
         possibleArrange = []
         finish = False
@@ -608,8 +734,13 @@ class Game():
             for x in range(len(groups)):
                 for j in range(selections[i]):
                     temp.add(selections[j])
-            if len(temp) <= game.remainingMines():
-                possibleArrange.append(temp)
+            if len(temp) <= game.remainingMines() and len(temp) != 0:
+                if len(temp) > 20:
+                    for i in range(20):
+                        possibleArrange.append(temp[i])
+                else:
+                    for i in range(len(temp)):
+                        possibleArrange.append(temp[i])
 
             for i in range(len(groups)-1,-1):
                 selections[i] += 1
@@ -625,6 +756,14 @@ class Game():
             for y in range(self.columns):
                 self.board[x][y].probability = 0
 
+        arrangements = 0
+
+        for i in range(len(possibleArrange)):
+            bombsRemaining = game.nummines - len(possibleArrange[i])
+            combos = self.combo(unknownAmount, bombsRemaining)
+
+            for j in range(len(possibleArrange[i])):
+                self.board[i][j].probability = possibleArrange[i][j].probability + combos
 
 
     def getRows(self):
@@ -638,15 +777,37 @@ class Game():
 
 
 game = Game(5,5,5)
-#def mineAi(game):
 
-#This is the function you guys need to impliment. At the moment all it does is pick a random unrevealed point on the graph
-#and if that point is not revealed then it will reveal it. You guys need to make it calculate the odds of
-#each unrevealed point on the graph and pick the one that is LEAST likely to be a mine.
 def guessMode(game):
-    if game.remainingMines() > 50:
-        #pick random
-        pass
+    if game.remainingMines() > 6 or game.firstPick is True:
+        game.firstPick = False
+        unrevealed = game.getAllUnrevealed()
+        randNum = random.randint(0, len(unrevealed) - 1)
+        x = unrevealed[randNum][0]
+        y = unrevealed[randNum][1]
+
+        xval = game.board[x][y].x
+        yval = game.board[x][y].y
+
+        pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+        infoBar()
+        game.update()
+        game.renderAI(x,y)
+        pygame.display.flip()
+        time.sleep(1)
+        game.render()
+        pygame.display.flip()
+        if(game.board[x][y].flag == False):
+            game.board[x][y].visible = True
+            infoBar()
+            game.update()
+            game.render()
+            pygame.display.flip()
+            time.sleep(.5)
+        else:
+
+            guessMode(game)
     else:
         game.calcProbabilities()
         rows = game.getRows()
