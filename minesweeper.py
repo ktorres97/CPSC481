@@ -705,6 +705,7 @@ class Game():
                         unknownAmount+=1
 
         #Group areas together so we can identify relationships
+        print('group')
         groups = []
         for x in range(self.rows):
             for y in range(self.columns):
@@ -721,6 +722,7 @@ class Game():
 
 
         #See possible positions of mines
+        print('solve')
         selections = [0] * len(groups)
         solutionGroups = []
         for i in range(len(groups)):
@@ -728,20 +730,20 @@ class Game():
 
         possibleArrange = []
         finish = False
-
+        print('arrange')
         while(finish is False):
             temp = []
             for x in range(len(groups)):
                 for j in range(selections[i]):
                     temp.add(selections[j])
-            if len(temp) <= game.remainingMines() and len(temp) != 0:
+            if len(temp) <= game.minenum and len(temp) != 0:
                 if len(temp) > 20:
                     for i in range(20):
                         possibleArrange.append(temp[i])
                 else:
                     for i in range(len(temp)):
                         possibleArrange.append(temp[i])
-
+            print('post temp')
             for i in range(len(groups)-1,-1):
                 selections[i] += 1
                 if selections[i] >= len(solutionGroups[i]):
@@ -752,6 +754,7 @@ class Game():
                 else: break
 
         #Find probability of each cell being a mine
+        print('compute')
         for x in range(self.rows):
             for y in range(self.columns):
                 self.board[x][y].probability = 0
@@ -772,14 +775,13 @@ class Game():
     def getColumns(self):
         return self.columns
 
-    def remainingMines(self):
-        return self.minenum
 
 
 game = Game(5,5,5)
 
 def guessMode(game):
-    if game.remainingMines() > 6 or game.firstPick is True:
+    print(game.minenum)
+    if game.minenum > 2 or game.firstPick is True:
         game.firstPick = False
         unrevealed = game.getAllUnrevealed()
         randNum = random.randint(0, len(unrevealed) - 1)
