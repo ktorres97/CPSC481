@@ -1,6 +1,3 @@
-''' 
-Hey gang, go down to line 395, thats where my changes take place
-'''
 
 import random
 import pygame
@@ -14,6 +11,7 @@ WHITE = (255,255,255)
 GREY = (127,127,127)
 BLACK = (0,0,0)
 BLUE = (76,76,255)
+GREEN = (0,255,0)
 
 size = (500,600)
 screen = pygame.display.set_mode(size)
@@ -41,7 +39,7 @@ gameState = -1
 class Button():
     def __init__(self):
         self.textBoxes = {}
-    
+
     #----Clicked In----
     def clickedIn(self,x,y,width,height):
         global mouse_state, mouse_x, mouse_y
@@ -59,7 +57,7 @@ class Button():
         global mouse_state, mouse_x, mouse_y
         if mouse_state == 0 and mouse_x >= x and mouse_x <= (x + width) and mouse_y >= y and mouse_y <= (y + height):
             return True
-    
+
     #----Click Button----
     def clickButton(self,x,y,width,height,normalColor,hoverColor,textFont,text,textColor,stateHolding = False,stateVariable = 0,state = 1):
         if not self.clickedIn(x,y,width,height) and not self.hovering(x,y,width,height):
@@ -81,7 +79,7 @@ def infoBar():
     global gameState
     pygame.draw.rect(screen,GREY,(0,0,500,100))
     pygame.draw.line(screen,BLACK,(0,100),(500,100),4)
-    
+
     if gameState == 0:
         text = font.render("MINES: " + str(game.nummines),True,BLACK)
         text_x = text.get_rect().width
@@ -97,11 +95,11 @@ def infoBar():
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
     elif gameState == 2:    #loose
-        text = font.render("YOU  LOOSE",True,BLACK)
+        text = font.render("YOU  LOSE",True,BLACK)
         text_x = text.get_rect().width
         text_y = text.get_rect().height
         screen.blit(text,((150 - (text_x / 2)),(50 - (text_y / 2))))
-        
+
     if gameState == 1 or gameState == 2:
         if button.clickButton(325,25,150,50,RED,ORANGE,font,"RESET",BLACK):
             gameState = -1
@@ -120,7 +118,7 @@ def menu():
     screen.blit(text,((250 - (text_x / 2)),(150 - (text_y / 2))))
     if button.clickButton(200,250,100,50,RED,ORANGE,font,"EASY",BLACK):
         game.reset(5,5,5)
-        gameState = 0     
+        gameState = 0
     if button.clickButton(200,310,100,50,RED,ORANGE,font,"MEDIUM",BLACK):
         game.reset(10,10,15)
         gameState = 0
@@ -163,9 +161,10 @@ def custom():
         if cMines > 0:
             cMines -= 1
     if button.clickButton(200,390,100,60,RED,ORANGE,font,"START",BLACK):
-        game.reset(cColumns,cRows,cMines)
+        #game.reset(cColumns,cRows,cMines)
+        game.reset(10,10,5)
         gameState = 0
-    
+
 
 class Tile():
     def __init__(self,x,y,columns,rows):
@@ -177,7 +176,9 @@ class Tile():
         self.neighbors = 0
         self.visible = False
         self.flag = False
-    
+        self.probability = None
+        self.fulfilled = False
+
     def update(self):
         global gameState
         if gameState == 0:
@@ -191,7 +192,9 @@ class Tile():
                     self.flag = False
             if self.visible == True and self.mine == True:
                 gameState = 2
-    
+        self.probability = 0
+
+
     def show(self):
         if self.flag == True:
             pygame.draw.rect(screen,YELLOW,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
@@ -203,26 +206,20 @@ class Tile():
                     text_x = text.get_rect().width
                     text_y = text.get_rect().height
                     screen.blit(text,((self.x + ((size[0] / self.columns) / 2) - (text_x / 2)),(self.y + (((size[1] - 100) / self.rows) / 2) - (text_y / 2))))
-            
+
             elif self.mine == True:
                 pygame.draw.rect(screen,RED,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
-        
+
         pygame.draw.rect(screen,BLACK,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)),2)
-    
+
+    #Fixes the render issue for traversing though the revealed points
     def showAI(self):
         if self.flag == True:
             pygame.draw.rect(screen,YELLOW,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
         if self.visible == True:
-            if self.mine == False:
-                if self.neighbors > 0:
-                    text = font.render(str(self.neighbors),True,BLACK)
-                    text_x = text.get_rect().width
-                    text_y = text.get_rect().height
-                    screen.blit(text,((self.x + ((size[0] / self.columns) / 2) - (text_x / 2)),(self.y + (((size[1] - 100) / self.rows) / 2) - (text_y / 2))))
-            
-            elif self.mine == True:
+            if self.mine == True:
                 pygame.draw.rect(screen,RED,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)))
-        
+
         pygame.draw.rect(screen,BLACK,(self.x,self.y,(size[0] / self.columns),((size[1] - 100) / self.rows)),2)
 
 
@@ -238,13 +235,15 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
-        
+        self.targets = []
+        self.masterList = []
+
         #creating board
         for y in range(self.rows):
             self.board.append([])
             for x in range(self.columns):
                 self.board[y].append(Tile(x,y,self.columns,self.rows))
-        
+
         #placing mines
         while self.minenum < self.nummines:
             self.mineloc = [random.randrange(self.columns),random.randrange(self.rows)]
@@ -252,7 +251,7 @@ class Game():
                 self.mines.append(self.mineloc)
                 self.board[self.mineloc[1]][self.mineloc[0]].mine = True
             self.minenum = len(self.mines)
-        
+
         #neighbors
         for y in range(self.rows):
             for x in range(self.columns):
@@ -276,18 +275,21 @@ class Game():
                     if self.board[y+1][x-1].mine == True:
                         self.neighbnum += 1
                 if y < (self.rows - 1):
-                    if self.board[y+1][x].mine == True:
+                    if self.board[y+1][x].mine == True: #bottom mid
                         self.neighbnum += 1
-                if x < (self.columns - 1) and y < (self.rows - 1):
+                if x < (self.columns - 1) and y < (self.rows - 1): #bottom left
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
-    
+                self.board[y][x].thresh = self.neighbnum
+
     def update(self):
         global gameState
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
+        self.masterList = []
+        self.targets = []
         for y in range(self.rows):
             for x in range(self.columns):
                 self.board[y][x].update()
@@ -312,6 +314,7 @@ class Game():
                     self.numflaged += 1
                 if self.board[y][x].visible == True:
                     self.numvis += 1
+                self.isSatisfied(y,x)
         for mine in self.mines:
             if self.board[mine[1]][mine[0]].flag == True:
                 self.foundmines += 1
@@ -321,16 +324,16 @@ class Game():
             for y in range(self.rows):
                 for x in range(self.columns):
                     self.board[y][x].visible = True
-        
-    
+
+
     def render(self):
         for y in range(self.rows):
             for x in range(self.columns):
                 self.board[y][x].show()
-    
+    #Fixes the render issue for traversing though the revealed points
     def renderAI(self, x, y):
         self.board[y][x].showAI()
-    
+
     def reset(self,columns,rows,mines):
         if columns != 0 and rows != 0 and mines != 0:
             self.columns = columns
@@ -343,13 +346,15 @@ class Game():
         self.numflaged = 0
         self.numvis = 0
         self.foundmines = 0
-        
+        self.targets = []
+        self.masterList = []
+
         #creating board
         for y in range(self.rows):
             self.board.append([])
             for x in range(self.columns):
                 self.board[y].append(Tile(x,y,self.columns,self.rows))
-        
+
         #placing mines
         while self.minenum < self.nummines:
             self.mineloc = [random.randrange(self.columns),random.randrange(self.rows)]
@@ -357,7 +362,7 @@ class Game():
                 self.mines.append(self.mineloc)
                 self.board[self.mineloc[1]][self.mineloc[0]].mine = True
             self.minenum = len(self.mines)
-        
+
         #neighbors
         for y in range(self.rows):
             for x in range(self.columns):
@@ -387,6 +392,7 @@ class Game():
                     if self.board[y+1][x+1].mine == True:
                         self.neighbnum += 1
                 self.board[y][x].neighbors = self.neighbnum
+
     #This function returns the coordinates of the unrevealed neighbors
     #of a given coordinate on the grid
     def getNumOfHiddenNeigbors(self, x, y):
@@ -424,7 +430,9 @@ class Game():
                 coords = tuple([x-1,y+1])
                 result.append(coords)
         return result
-    
+
+    #this function returns an array of flags that have been placed
+    #I dont think I actually used this function
     def getArrayOfFlags(self, coords):
         flags = []
         for coord in coords:
@@ -434,13 +442,34 @@ class Game():
                 flags.append(coord)
         return flags
 
+    def getNumOfFlags(self, neighbs):
+
+        count = 0
+        for neighb in neighbs:
+            x = neighb[0]
+            y = neighb[1]
+            if self.board[x][y].flag == True:
+                count += 1
+        return count
+
+    #This function checks to see if a point on the grid has been satisfied
+    def isSatisfied(self, x, y):
+
+            neighbs = self.getNumOfHiddenNeigbors(x,y)
+            flagCount = self.getNumOfFlags(neighbs)
+            if(len(neighbs) == flagCount):
+                self.board[x][y].fulfilled = True
+                return True
+            return False
+
+    #returns an array of all of the revealed points on the grid
     def getAllRevealed(self):
         revealed = []
         x = 0
         y = 0
         while x < self.rows:
             while y < self.columns:
-                if self.board[x][y].visible == True:
+                if self.board[x][y].visible == True and self.isSatisfied(x,y) == False:
                     coord = tuple([x,y])
                     revealed.append(coord)
                 y += 1
@@ -448,6 +477,22 @@ class Game():
             y = 0
         return revealed
 
+    #returns an array of all unrevealed points on the graph
+    def getAllUnrevealed(self):
+        unrevealed = []
+        x = 0
+        y = 0
+        while x < self.rows:
+            while y < self.columns:
+                if self.board[x][y].visible == False:
+                    coord = tuple([x,y])
+                    unrevealed.append(coord)
+                y += 1
+            x += 1
+            y = 0
+        return unrevealed
+
+    #flags the neighbors
     def flagNeighbors(self, coords):
         for coord in coords:
             x = coord[0]
@@ -456,76 +501,306 @@ class Game():
             infoBar()
             self.update()
 
-    
+    #This function reveals the neighbors that are 100% forsure not mines
     def revealNeigborsWithouFlags(self, neighbors):
         for neigb in neighbors:
             x = neigb[0]
             y = neigb[1]
+            xval = game.board[x][y].x
+            yval = game.board[x][y].y
+            time.sleep(.2)
             if self.board[x][y].flag == False:
+                pygame.draw.rect(screen,GREEN,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+                pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+                infoBar()
+                game.update()
+                game.renderAI(x,y)
+                pygame.display.flip()
+                time.sleep(.2)
                 self.board[x][y].visible = True
                 infoBar()
                 self.update()
-                self.render()
+                self.renderAI(x,y)
                 pygame.display.flip()
                 time.sleep(.5)
 
+    #Evaluate targets
+    def targetProb(self,y,x):
+        thresh = self.board[y][x].neighbors
+        calc = []
+        location = []
+        #identify visible cells
+        if y > 0 and x > 0:
+            if self.board[y-1][x-1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y-1,x-1))
+        if y > 0:
+            if self.board[y-1][x].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y-1,x))
+        if y > 0 and x < (self.columns - 1):
+            if self.board[y-1][x+1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y-1,x+1))
+        if x > 0:
+            if self.board[y][x-1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y,x-1))
+        if x < (self.columns - 1):
+            if self.board[y][x+1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y,x+1))
+        if x > 0 and y < (self.rows - 1):
+            if self.board[y+1][x-1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y+1,x-1))
+        if y < (self.rows - 1):
+            if self.board[y+1][x].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y+1,x))
+        if x < (self.columns - 1) and y < (self.rows - 1):
+            if self.board[y+1][x+1].visible == True:
+                calc.append(False)
+                location.append(None)
+            else:
+                calc.append(True)
+                location.append((y+1,x+1))
+        print('---------')
+        print('Consider:')
+        print(calc)
+        print('Locations: ')
+        print(location)
+        print('--')
+
+        #look at non flags
+        split = []
+        for i in range(len(calc)):
+            if calc[i] == True:
+                if self.board[location[i][0]][location[i][1]].flag == True:
+                    thresh -= 1
+                else:
+                    split.append(location[i])
+                    self.masterList.append(location[i])
+
+        for i in split:
+            if self.board[i[0]][i[1]].probability == 0:
+                self.board[i[0]][i[1]].probability = 1/len(split)
+            else:
+                self.board[i[0]][i[1]].probability *= (1/len(split))
+            print('Probability of ' + str(i) +  ': ' + str(self.board[i[0]][i[1]].probability))
+
+    #Calculate probability of being a mine
+    def calcProbability(self):
+        self.targets = []
+        self.masterList = []
+        for y in range(self.rows):
+            for x in range(self.columns):
+                self.board[y][x].probability = 0
+                consider = False
+                if self.board[y][x].fulfilled == False and self.board[y][x].visible == True:
+                    if y > 0 and x > 0:
+                        if self.board[y-1][x-1].visible == True:
+                            consider = True
+                    if y > 0:
+                        if self.board[y-1][x].visible == True:
+                            consider = True
+                    if y > 0 and x < (self.columns - 1):
+                        if self.board[y-1][x+1].visible == True:
+                            consider = True
+                    if x > 0:
+                        if self.board[y][x-1].visible == True:
+                            consider = True
+                    if x < (self.columns - 1):
+                        if self.board[y][x+1].visible == True:
+                            consider = True
+                    if x > 0 and y < (self.rows - 1):
+                        if self.board[y+1][x-1].visible == True:
+                            consider = True
+                    if y < (self.rows - 1):
+                        if self.board[y+1][x].visible == True:
+                            consider = True
+                    if x < (self.columns - 1) and y < (self.rows - 1):
+                        if self.board[y+1][x+1].fulfilled == True:
+                            consider = True
+                if consider == True:
+                    self.targets.append((y,x))
+            if len(self.targets) == 0:
+                self.targets = self.getAllRevealed()
+            for target in self.targets:
+                self.targetProb(target[0], target[1])
+
+    #return number of unfound mines
+    def remainingMines(self):
+        return self.nummines - self.numflaged
 
 
 game = Game(5,5,5)
 #def mineAi(game):
 
-def traverseThoughGrid(game):
-    cols = game.columns
-    rows = game.rows
-    x = 0
-    y = 0
-    while x < rows:
-        while y < cols:
-            xval = game.board[x][y].x
-            yval = game.board[x][y].y
-            
-            pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
-            if(x == rows//2  and y == cols//2):
-                game.board[x][y].visible = True
+#Guess
+def guessMode(game):
+    if(game.numvis == 0):
+        unrevealed = game.getAllUnrevealed()
+        randNum = random.randint(0, len(unrevealed) - 1)
+        x = unrevealed[randNum][0]
+        y = unrevealed[randNum][1]
+
+        xval = game.board[x][y].x
+        yval = game.board[x][y].y
+
+        pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+        infoBar()
+        game.update()
+        game.renderAI(x,y)
+        pygame.display.flip()
+        time.sleep(1)
+        game.render()
+        pygame.display.flip()
+        if(game.board[x][y].flag == False):
+            game.board[x][y].visible = True
             infoBar()
             game.update()
             game.render()
             pygame.display.flip()
-            y += 1
-            time.sleep(.05)
-            screen.fill(WHITE)
-            infoBar()
-            game.update()
-            game.render()
-            pygame.display.flip()
+            time.sleep(.5)
+        else:
+            guessMode(game)
+    else:
+        """infoBar()
+        game.calcProbability()
+        minProb = 1
+        x = None
+        y = None
+        for j in range(game.rows):
+            for i in range(game.columns):
+                if game.board[j][i].probability < minProb and game.board[j][i].visible != True:
+                    target = False
+                    for k in game.masterList:
+                        if j == k[0] and i == k[1]:
+                            target = True
+                    if target == True:
+                        minProb = game.board[j][i].probability
+                        x = j
+                        y = i
+                        print(minProb)"""
+        lowestProbability = traverseLowestProbability(game)
+        x, y = lowestProbability[0], lowestProbability[1]
+        lowestProbValue = game.board[y][x].probability
+        print('Pick: ('+ str(y) +','+str(x)+')' + ' with probability ' + str(lowestProbValue))
+        xval = game.board[x][y].x
+        yval = game.board[x][y].y
 
-        x+=1
-        y = 0
-    
+        pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+        game.renderAI(x,y)
+        pygame.display.flip()
+        time.sleep(1)
+        game.render()
+        pygame.display.flip()
+        game.board[x][y].visible = True
+        infoBar()
+        game.update()
+        game.render()
+        pygame.display.flip()
+        time.sleep(.5)
 
+#traverse through the board, store lowest probability
+def traverseLowestProbability(game):
+    #return a tuple with the coord and lowest probability
+    lowestList = []
+    lowestProb = None
+
+    x, y = None, None
+
+    infoBar()
+    game.calcProbability()
+    minProb = 1
+
+    for j in range(game.rows):
+        for i in range(game.columns):
+            if game.board[j][i].probability < minProb and game.board[j][i].visible != True:
+                target = False
+                for k in game.masterList:
+                    if j == k[0] and i == k[1]:
+                        target = True
+                if target == True:
+                    minProb = game.board[j][i].probability
+                    x = j
+                    y = i
+                    if not lowestList:
+                        lowestList.append(x)
+                        lowestList.append(y)
+                        lowestProb = minProb
+                    elif minProb > lowestProb:
+                        lowestProb = minProb
+                        lowestList[0] = x
+                        lowestList[1] = y
+
+    return lowestList
+
+
+#traverses through the revealed points on the grid
 def traverseThoughRevealed(game, coords):
     for coord in coords:
         x = coord[0]
         y = coord[1]
         xval = game.board[x][y].x
         yval = game.board[x][y].y
+
+        #gets neighbors
         neighbs = game.getNumOfHiddenNeigbors(x,y)
+        #draws blue rectangle with black border indicating where the AI is looking
         pygame.draw.rect(screen,BLUE,(xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)))
+        pygame.draw.rect(screen, BLACK, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
+        if(game.board[x][y].neighbors > 0):
+            #if the point on the graph has neighbors write the number over the Blue rectangle
+            text = font.render(str(game.board[x][y].neighbors),True,BLACK)
+            text_x = text.get_rect().width
+            text_y = text.get_rect().height
+            screen.blit(text,((game.board[x][y].x + ((size[0] / game.columns) / 2) - (text_x / 2)),(game.board[x][y].y + (((size[1] - 100) / game.rows) / 2) - (text_y / 2))))
+        #these next 4 lines update everything
         infoBar()
         game.update()
         game.renderAI(x,y)
         pygame.display.flip()
+
+        #if there are neighbors that havent been revealed the AI lookss at the,
         if len(neighbs) > 0:
             drawNeighbors(game,neighbs)
             infoBar()
             game.update()
             game.renderAI(x,y)
             pygame.display.flip()
-            
+
+            #when we know forsure to flag neighbors
             if(len(neighbs) == game.board[x][y].neighbors):
                 game.flagNeighbors(neighbs)
 
-            flags = game.getArrayOfFlags(neighbs)   
+            #get array of flags
+            flags = game.getArrayOfFlags(neighbs)
+            #if there are a sufficient number of flags reveal all other points
             if(len(flags) == game.board[x][y].neighbors):
                game.revealNeigborsWithouFlags(neighbs)
 
@@ -533,8 +808,8 @@ def traverseThoughRevealed(game, coords):
         time.sleep(.05)
         game.render()
         pygame.display.flip()
-        
-        
+
+#draws out the orange outline indicating the neighbors that the AI is looking at
 def drawNeighbors(game, coords):
     for coord in coords:
         x = coord[0]
@@ -543,7 +818,29 @@ def drawNeighbors(game, coords):
         yval = game.board[x][y].y
         pygame.draw.rect(screen, ORANGE, [xval,yval,(size[0] / game.columns),((size[1] - 100) / game.rows)], 3)
 
-        
+def shouldEnterGuessMode(game, revOne, revTwo):
+
+    if(len(revOne) != len(revTwo)):
+        return False
+
+    n = len(revTwo)
+    for i in range(0,n-1):
+
+        xOne = revOne[i][0]
+        yOne = revOne[i][1]
+        xTwo = revTwo[i][0]
+        yTwo = revTwo[i][1]
+        neighbsOne = game.getNumOfHiddenNeigbors(xOne,yOne)
+        neighbsTwo = game.getNumOfHiddenNeigbors(xTwo,yTwo)
+
+        if(len(neighbsOne) != len(neighbsTwo)):
+            return False
+
+        if game.getNumOfFlags(neighbsOne) != game.getNumOfFlags(neighbsTwo):
+            return False
+
+    return True
+
 
 while not done:
 
@@ -555,33 +852,58 @@ while not done:
             pygame.mouse.set_pos(mouse_x,mouse_y + 1)
         else:
             mouse_state = 0
-    
+
     mouse_x = pygame.mouse.get_pos()[0]
     mouse_y = pygame.mouse.get_pos()[1]
-    
+
     screen.fill(WHITE)
-    
+
     if gameState == -1:
         menu()
-    
+
     elif gameState == -2:
         custom()
-    
+
     elif gameState >= 0 and gameState <= 2:
-        
-        if(startMode):
-            traverseThoughGrid(game)
-            startMode = False
-        else:
+
+        infoBar()
+        game.update()
+        game.render()
+        pygame.display.flip()
+        if(gameState == 1 or gameState == 2):
+            #startmode basically looks for an initial point to reveal, right now i just do the most middle point
             infoBar()
             game.update()
             game.render()
             pygame.display.flip()
-            rev = game.getAllRevealed()
-            traverseThoughRevealed(game,rev)
-            
-        
-    
+
+        else:
+            if(startMode):
+                guessMode(game)
+                startMode = False
+                infoBar()
+                game.update()
+                game.render()
+                pygame.display.flip()
+                if(gameState != 2 and gameState != 1):
+                    newRev = game.getAllRevealed()
+                    traverseThoughRevealed(game,newRev)
+            else:
+                infoBar()
+                game.update()
+                game.render()
+                pygame.display.flip()
+                #get all revealed points and traverse through them
+                oldRev = newRev
+                newRev = game.getAllRevealed()
+
+                if(shouldEnterGuessMode(game,oldRev,newRev)):
+                    guessMode(game)
+                else:
+                    traverseThoughRevealed(game,newRev)
+
+
+
     pygame.display.flip()
 
     clock.tick(60)
