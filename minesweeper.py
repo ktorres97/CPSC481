@@ -611,44 +611,225 @@ class Game():
             print('Probability of ' + str(i) +  ': ' + str(self.board[i[0]][i[1]].probability))
 
     #Calculate probability of being a mine
-    def calcProbability(self):
-        self.targets = []
-        self.masterList = []
-        for y in range(self.rows):
-            for x in range(self.columns):
-                self.board[y][x].probability = 0
-                consider = False
-                if self.board[y][x].fulfilled == False and self.board[y][x].visible == True:
-                    if y > 0 and x > 0:
-                        if self.board[y-1][x-1].visible == True:
-                            consider = True
-                    if y > 0:
-                        if self.board[y-1][x].visible == True:
-                            consider = True
-                    if y > 0 and x < (self.columns - 1):
-                        if self.board[y-1][x+1].visible == True:
-                            consider = True
-                    if x > 0:
-                        if self.board[y][x-1].visible == True:
-                            consider = True
-                    if x < (self.columns - 1):
-                        if self.board[y][x+1].visible == True:
-                            consider = True
-                    if x > 0 and y < (self.rows - 1):
-                        if self.board[y+1][x-1].visible == True:
-                            consider = True
-                    if y < (self.rows - 1):
-                        if self.board[y+1][x].visible == True:
-                            consider = True
-                    if x < (self.columns - 1) and y < (self.rows - 1):
-                        if self.board[y+1][x+1].fulfilled == True:
-                            consider = True
-                if consider == True:
-                    self.targets.append((y,x))
-            if len(self.targets) == 0:
-                self.targets = self.getAllRevealed()
-            for target in self.targets:
-                self.targetProb(target[0], target[1])
+    def calcProbabilities(self):
+
+        # Initialize the probability of all unknown tiles to '0'
+        for x in range(self.rows):
+            for y in range(self.columns):
+                if self.board[x][y].visible is False:
+                    self.board[x][y].probability = 0
+
+        # Loop through all visible tiles
+        for x in range(self.rows):
+            for y in range(self.columns):
+                if self.board[x][y].visible is True:
+
+                    # Check if it has any surrounding tiles that are non-visible
+                    hasUnknownTiles = False
+                    if (x > 0 and self.board[x - 1][y].visible is False and self.board[x - 1][y].flag != True):
+                        hasUnknownTiles = True
+                    if (x < self.rows - 1 and self.board[x + 1][y].visible is False and self.board[x + 1][
+                        y].flag != True):
+                        hasUnknownTiles = True
+                    if (x > 0 and y > 0 and self.board[x - 1][y - 1].visible is False and self.board[x - 1][
+                        y - 1].flag != True):
+                        hasUnknownTiles = True
+                    if (x < self.rows - 1 and y > 0 and self.board[x + 1][y - 1].visible is False and
+                            self.board[x + 1][y - 1].flag != True):
+                        hasUnknownTiles = True
+                    if (x > 0 and y < self.columns - 1 and self.board[x - 1][y + 1].visible is False and
+                            self.board[x - 1][y + 1].flag != True):
+                        hasUnknownTiles = True
+                    if (x < self.rows - 1 and y < self.columns - 1 and self.board[x + 1][y + 1].visible is False and
+                            self.board[x + 1][y + 1].flag != True):
+                        hasUnknownTiles = True
+                    if (y > 0 and self.board[x][y - 1].visible is False and self.board[x][y - 1].flag != True):
+                        hasUnknownTiles = True
+                    if (y < self.columns - 1 and self.board[x][y + 1].visible is False and self.board[x][
+                        y + 1].flag != True):
+                        hasUnknownTiles = True
+
+                    # IF it doesn't : do nothing
+
+                    # IF it does:
+                    if hasUnknownTiles is True:
+
+                        # Add up all the probabilities of surrounding tiles that don't = zero
+                        TotalProbability = 0
+
+                        if x > 0:
+                            if self.board[x - 1][y].probability > 0:
+                                TotalProbability += self.board[x - 1][y].probability
+                        if x < (self.columns - 1):
+                            if self.board[x + 1][y].probability > 0:
+                                TotalProbability += self.board[x + 1][y].probability
+                        if x > 0 and y > 0:
+                            if self.board[x - 1][y - 1].probability > 0:
+                                TotalProbability += self.board[x - 1][y - 1].probability
+                        if x < (self.columns - 1) and y > 0:
+                            if self.board[x + 1][y - 1].probability > 0:
+                                TotalProbability += self.board[x + 1][y - 1].probability
+                        if x > 0 and y < (self.rows - 1):
+                            if self.board[x - 1][y + 1].probability > 0:
+                                TotalProbability += self.board[x - 1][y + 1].probability
+                        if x < (self.columns - 1) and y < (self.rows - 1):
+                            if self.board[x + 1][y + 1].probability > 0:
+                                TotalProbability += self.board[x + 1][y + 1].probability
+                        if y < (self.rows - 1):
+                            if self.board[x][y + 1].probability > 0:
+                                TotalProbability += self.board[x][y + 1].probability
+                        if y > 0:
+                            if self.board[x][y - 1].probability > 0:
+                                TotalProbability += self.board[x][y - 1].probability
+
+                        # Then CHECK if that TotalProbability matches the value of the tiles(1, 2, 3, etc.)
+                        if TotalProbability is self.board[x][y].neighbors:
+
+                            # IF it matches:
+                            #	1) Then reveal all surrounding tiles with probabilites
+                            #	   that are equal to zero.
+                            if self.board[x - 1][y].probability is 0:
+                                self.board[x - 1][y].visible = True
+                                return
+                            if self.board[x + 1][y].probability is 0:
+                                self.board[x + 1][y].visible = True
+                                return
+                            if self.board[x - 1][y - 1].probability is 0:
+                                self.board[x - 1][y - 1].visible = True
+                                return
+                            if self.board[x + 1][y - 1].probability is 0:
+                                self.board[x + 1][y - 1].visible = True
+                                return
+                            if self.board[x - 1][y + 1].probability is 0:
+                                self.board[x - 1][y + 1].visible = True
+                                return
+                            if self.board[x + 1][y + 1].probability is 0:
+                                self.board[x + 1][y + 1].visible = True
+                                return
+                            if self.board[x][y + 1].probability is 0:
+                                self.board[x][y + 1].visible = True
+                                return
+                            if self.board[x][y - 1].probability is 0:
+                                self.board[x][y - 1].visible = True
+                                return
+
+                        # IF no match, then do these steps:
+                        if TotalProbability != self.board[x][y].neighbors:
+
+                            # 1) Calculate: TILE VALUE - SumOfSurroundingProbabilities(Non-Zero) = LeftOverProbabilities
+                            LeftOverProbabilities = self.board[x][y].neighbors - TotalProbability
+
+                            # 2) Take LeftOverProbabilities(from step 1) and divide by the # of non-visible
+                            #    surrounding tiles.
+                            TotalUnknownTiles = 0
+                            if x > 0:
+                                if self.board[x - 1][y].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if x < (self.columns - 1):
+                                if self.board[x + 1][y].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if x > 0 and y > 0:
+                                if self.board[x - 1][y - 1].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if x < (self.columns - 1) and y > 0:
+                                if self.board[x + 1][y - 1].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if x > 0 and y < (self.rows - 1):
+                                if self.board[x - 1][y + 1].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if x < (self.columns - 1) and y < (self.rows - 1):
+                                if self.board[x + 1][y + 1].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if y < (self.rows - 1):
+                                if self.board[x][y + 1].probability is 0:
+                                    TotalUnknownTiles += 1
+                            if y > 0:
+                                if self.board[x][y - 1].probability is 0:
+                                    TotalUnknownTiles += 1
+
+                            if TotalUnknownTiles > 0:
+                                SplitProbabilities = LeftOverProbabilities / TotalUnknownTiles
+
+                            # 3) Then SET Probability of each surrounding non-visible tile to
+                            #    the value calculated from step 2.
+                            if x > 0:
+                                if self.board[x - 1][y].probability is 0:
+                                    self.board[x - 1][y].probability = SplitProbabilities
+                            if x < (self.columns - 1):
+                                if self.board[x + 1][y].probability is 0:
+                                    self.board[x + 1][y].probability = SplitProbabilities
+                            if x > 0 and y > 0:
+                                if self.board[x - 1][y - 1].probability is 0:
+                                    self.board[x - 1][y - 1].probability = SplitProbabilities
+                            if x < (self.columns - 1) and y > 0:
+                                if self.board[x + 1][y - 1].probability is 0:
+                                    self.board[x + 1][y - 1].probability = SplitProbabilities
+                            if x > 0 and y < (self.rows - 1):
+                                if self.board[x - 1][y + 1].probability is 0:
+                                    self.board[x - 1][y + 1].probability = SplitProbabilities
+                            if x < (self.columns - 1) and y < (self.rows - 1):
+                                if self.board[x + 1][y + 1].probability is 0:
+                                    self.board[x + 1][y + 1].probability = SplitProbabilities
+                            if y < (self.rows - 1):
+                                if self.board[x][y + 1].probability is 0:
+                                    self.board[x][y + 1].probability = SplitProbabilities
+                            if y > 0:
+                                if self.board[x][y - 1].probability is 0:
+                                    self.board[x][y - 1].probability = SplitProbabilities
+
+                                # 4) CHECK all surrounding tiles again to see if any of
+                                #    the probabilites was set to 100%(or 1).
+                                #		- IF a tile was set to 100%(or 1) then flag that tile and exit
+                                #         probability mode.
+                            if x > 0:
+                                if self.board[x - 1][y].probability is 1:
+                                    self.board[x - 1][y].visible = True
+                                    return
+                            if x < (self.columns - 1):
+                                if self.board[x + 1][y].probability is 1:
+                                    self.board[x + 1][y].visible = True
+                                    return
+                            if x > 0 and y > 0:
+                                if self.board[x - 1][y - 1].probability is 1:
+                                    self.board[x - 1][y - 1].visible = True
+                                    return
+                            if x < (self.columns - 1) and y > 0:
+                                if self.board[x + 1][y - 1].probability is 1:
+                                    self.board[x + 1][y - 1].visible = True
+                                    return
+                            if x > 0 and y < (self.rows - 1):
+                                if self.board[x - 1][y + 1].probability is 1:
+                                    self.board[x - 1][y + 1].visible = True
+                                    return
+                            if x < (self.columns - 1) and y < (self.rows - 1):
+                                if self.board[x + 1][y + 1].probability is 1:
+                                    self.board[x + 1][y + 1].visible = True
+                                    return
+                            if y < (self.rows - 1):
+                                if self.board[x][y + 1].probability is 1:
+                                    self.board[x][y + 1].visible = True
+                                    return
+                            if y > 0:
+                                if self.board[x][y - 1].probability is 1:
+                                    self.board[x][y - 1].visible = True
+                                    return
+
+        # IF END of board is reached without FLAGGING or REVEALING any tiles,
+        # then just reveal the tile with the lowest probability of being a mine.
+        LeastProbOfMine = 10
+        # r(row) and c(column) used to keep track of (x,y) of the tile with least probability
+        r = 0
+        c = 0
+        # Loop to compare all probabilities
+        for x in range(self.rows):
+            for y in range(self.columns):
+                if self.board[x][y].visible is True and self.board[x][y].flag != True and self.board[x][
+                    y].probability > 0:
+                    if self.board[x][y].probability < LeastProbOfMine:
+                        r = x
+                        c = y
+        self.board[r][c].visible = True
+        return
 
     #return number of unfound mines
     def remainingMines(self):
@@ -688,27 +869,11 @@ def guessMode(game):
         else:
             guessMode(game)
     else:
-        """infoBar()
-        game.calcProbability()
-        minProb = 1
-        x = None
-        y = None
-        for j in range(game.rows):
-            for i in range(game.columns):
-                if game.board[j][i].probability < minProb and game.board[j][i].visible != True:
-                    target = False
-                    for k in game.masterList:
-                        if j == k[0] and i == k[1]:
-                            target = True
-                    if target == True:
-                        minProb = game.board[j][i].probability
-                        x = j
-                        y = i
-                        print(minProb)"""
         lowestProbability = traverseLowestProbability(game)
         x, y = lowestProbability[0], lowestProbability[1]
         lowestProbValue = game.board[y][x].probability
         print('Pick: ('+ str(y) +','+str(x)+')' + ' with probability ' + str(lowestProbValue))
+
         xval = game.board[x][y].x
         yval = game.board[x][y].y
 
@@ -735,7 +900,7 @@ def traverseLowestProbability(game):
     x, y = None, None
 
     infoBar()
-    game.calcProbability()
+    game.calcProbabilities()
     minProb = 1
 
     for j in range(game.rows):
